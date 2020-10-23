@@ -1,19 +1,18 @@
 class Journey
   MIN_FARE = 1
   PENALTY_FARE = 6
-  def initialize(entry, exit)
+
+  attr_accessor :entry_station, :exit_station
+
+  def initialize(entry)
     @entry_station = entry
-    @exit_station = exit
   end
 
   def valid_journey?
-    return false if @entry_station == nil
-    return false if @exit_station == nil
-    true
+    !!@entry_station && !!@exit_station
   end
 
   def fare
-    return PENALTY_FARE unless valid_journey?
-    MIN_FARE
+   valid_journey? ? MIN_FARE : PENALTY_FARE
   end
 end

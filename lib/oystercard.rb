@@ -1,42 +1,31 @@
 class Oystercard
-  attr_reader :balance, :entry_station, :journey_log
+  attr_reader :balance, :journey_log
 
-  def initialize(balance = 0)
-    @balance = balance
-    #@in_journey = false
-    @default_min_cap = 1
-    @default_max_cap = 90
-    @min_fare = 1
-    @entry_station = nil
-    @journey_log = []
+  MAX_BALANCE = 90
+  MIN_BALANCE = 1
+
+  def initialize
+    @balance = 0
+    @journey_log = JourneyLog.new(Journey)
   end
 
   def top_up(amount)
-    fail "Can't exceed limit of £90" if (@balance + amount) > @default_max_cap
+    fail "Can't exceed limit of £#{MAX_BALANCE}" if (@balance + amount) > MAX_BALANCE
     @balance += amount
   end
 
   def touch_in(station)
-    fail "Not enough credit, TOP UP!" if @balance < @default_min_cap
-    @entry_station = station
-    #@in_journey = true
+    fail "Not enough credit, TOP UP!" if @balance < MIN_BALANCE
+    @journey_log.start(station)
   end
 
   def touch_out(station)
-    @journey_log << Journey.new(@entry_station, station)
-    deduct(@min_fare)
-    @entry_station = nil
-    #@in_journey = false
-  end
-
-  def in_journey
-    return true unless @entry_station == nil
-    return false
+    @journey_log.finish(station)
+    deduct(@journey_log.journeys.last.fare)
   end
 
   private
   def deduct(amount)
     @balance -= amount
   end
-
 end
