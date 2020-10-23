@@ -5,14 +5,13 @@ require 'journeylog'
 
 describe Oystercard do
 
-  let (:entry_station) {double :entry_station}
-  let (:exit_station) {double :exit_station}
+  let (:entry_station) { Station.new("Entry", 1)}
+  let (:exit_station) { Station.new("Exit", 6)}
 
   it { is_expected.to respond_to(:balance) }
   it { is_expected.to respond_to(:top_up) }
-  it { is_expected.to respond_to(:in_journey) }
-  it { is_expected.to respond_to(:touch_in) }
-  it { is_expected.to respond_to(:touch_out) }
+  it { is_expected.to respond_to(:touch_in).with(1).argument }
+  it { is_expected.to respond_to(:touch_out).with(1).argument }
 
 
   describe '.balance' do
@@ -20,6 +19,7 @@ describe Oystercard do
       expect(subject.balance).to eq 0
     end
   end
+
   describe "#top_up()" do
     it "adds balance to the card" do
       expect(subject.top_up(5)).to eq 5
@@ -37,42 +37,28 @@ describe Oystercard do
     it 'changes in_journey to be true' do
       subject.top_up(5)
       subject.touch_in(:entry_station)
-      expect(subject.in_journey).to eq true
+      expect(subject.journey_log.current_journey?).to eq true
     end
     it "throws an error if balance has insufficent funds" do
-      expect { subject.touch_in(:entry_station)}.to raise_error "Not enough credit, TOP UP!"
+      expect { subject.touch_in(:entry_station)}.to raise_error "Not enough credit [0], TOP UP!"
     end
 
     it 'remembers the entry station' do
       subject.top_up(5)
       subject.touch_in(:entry_station)
-      expect(subject.entry_station).to eq :entry_station
-    end
-
-  end
-  describe '.touch_out' do
-    it 'changes in_journey to be false' do
-      subject.top_up(5)
-      subject.touch_in(:entry_station)
-      subject.touch_out(:exit_station)
-      expect(subject.in_journey).to eq false
-    end
-    it 'deducts min fare when you touch out' do
-      subject.top_up(5)
-      subject.touch_in(:entry_station)
-      expect {subject.touch_out(:exit_station)}.to change{subject.balance}.by(-1)
+      expect(subject.journey_log.journeys.last.entry_station).to eq :entry_station
     end
   end
 
   describe '.journey' do
     it 'the card has an empty list of journeys by default' do
-      expect(subject.journey_log).to eq []
+      expect(subject.journey_log.journeys).to eq []
     end
     it 'logs a journey' do
       subject.top_up(5)
-      subject.touch_in(:entry_station)
-      subject.touch_out(:exit_station)
-      expect((subject.journey_log).size).to eq 1
+      subject.touch_in(entry_station)
+      subject.touch_out(exit_station)
+      expect(subject.journey_log.journeys.size).to eq 1
     end
   end
 end
@@ -105,34 +91,15 @@ RSpec.describe Journey do
   let(:exit_station) { Station.new("station002", 4) }
   describe 'create new journey' do
     it 'enables a new journey to be created ' do
-      expect {Journey.new(entry_station, exit_station)}.to_not raise_error
+      expect {Journey.new(entry_station)}.to_not raise_error
     end
   end
-  let(:journey) { Journey.new(entry_station, exit_station) }
-  let(:subject) {journey}
-  describe '#check vaild journey' do
-    it { is_expected.to respond_to(:valid_journey?) }
-    it 'returns false when not touched in' do
-      journey1 = Journey.new(nil, exit_station)
-      expect(journey1.valid_journey?).to eq false
-    end
-    it 'returns false when not touched out' do
-      journey2 = Journey.new(entry_station, nil)
-      expect(journey2.valid_journey?).to eq false
-    end
-    it 'returns true for a journey that touches in and out' do
-      journey3 = Journey.new(entry_station, exit_station)
-      expect(journey3.valid_journey?).to eq true
-    end
+  let(:journey) { Journey.new(entry_station) }
+  let(:subject) { journey }
 
-  end
   describe '#fare' do
     it { is_expected.to respond_to(:fare) }
 
-    it 'returns minimum fare for a valid journey' do
-      allow(subject).to receive(:valid_journey?).and_return true
-      expect(subject.fare).to eq Journey::MIN_FARE
-    end
     it 'returns penalty fare for a invalid journey' do
       allow(subject).to receive(:valid_journey?).and_return false
       expect(subject.fare).to eq Journey::PENALTY_FARE
@@ -141,19 +108,38 @@ RSpec.describe Journey do
 end
 
 RSpec.describe JourneyLog do
-  describe "setting up a new journey log object" do
-    let(:journey) { double :journey }
-    let(:station) { double :station }
-    let(:journey_class) {double :journey_class, new: journey}
-    subject {described_class.new(journey_class: journey_class)}
+  let(:entry_station) { Station.new("Entry", 1) }
+  let(:exit_station) { Station.new("Exit", 6) }
+  subject {JourneyLog.new(Journey)}
 
-    it {is_expected.to respond_to(:start)}
+  it {is_expected.to respond_to(:start).with(1).argument }
 
-    describe "#start" do
-      it 'starts a journey' do
-        expect(journey_class).to receive(:new).with(station)
-        subject.start(station)
-      end
+  it {is_expected.to respond_to(:finish).with(1).argument }
+
+  it {is_expected.to respond_to(:current_journey?) }
+
+  it {is_expected.to respond_to(:journeys) }
+
+  describe "- start creates a journey in journeys" do
+    it "- creates a journey" do
+      subject.start(entry_station)
+      expect(subject.journeys.last.entry_station).to eq entry_station
+    end
+  end
+
+  describe "- finish completes a journey" do
+    it "- completes the last journey in journeys" do
+      subject.start(entry_station)
+      subject.finish(exit_station)
+      expect(subject.journeys.last.exit_station).to eq exit_station
+    end
+  end
+
+  describe "- finish completes a journey" do
+    it "- completes the last journey in journeys" do
+      subject.start(entry_station)
+      subject.finish(exit_station)
+      expect(subject.journeys.last.exit_station).to eq exit_station
     end
   end
 

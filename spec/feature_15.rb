@@ -4,8 +4,8 @@ require_relative '../lib/oystercard'
 require_relative '../lib/station'
 
 card_test = Oystercard.new
-entry_station = Station.new("Entry", 1)
-exit_station = Station.new("Exit", 6)
+entry_station = Station.new("Entry", 6)
+exit_station = Station.new("Exit", 5)
 
 puts "This should fail with no funds error"
 begin
@@ -26,3 +26,15 @@ puts card_test.journey_log.journeys.inspect
 
 puts "\nbalance should now be 9"
 puts card_test.balance
+
+puts "this should result in a penalty payment on the card"
+begin
+  card_test.touch_in(entry_station)
+  card_test.touch_in(entry_station)
+  puts card_test.balance
+
+  card_test.touch_in(entry_station)
+rescue StandardError => e
+  puts e.message
+  puts card_test.balance
+end

@@ -1,5 +1,4 @@
 class Journey
-  MIN_FARE = 1
   PENALTY_FARE = 6
 
   attr_accessor :entry_station, :exit_station
@@ -13,6 +12,11 @@ class Journey
   end
 
   def fare
-   valid_journey? ? MIN_FARE : PENALTY_FARE
+   valid_journey? ? 1 + zones : PENALTY_FARE
+  end
+
+  private
+  def zones
+    (@exit_station.zone - @entry_station.zone).abs
   end
 end

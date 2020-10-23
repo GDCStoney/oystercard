@@ -15,7 +15,8 @@ class Oystercard
   end
 
   def touch_in(station)
-    fail "Not enough credit, TOP UP!" if @balance < MIN_BALANCE
+    touch_out(nil) if !@journey_log.journeys.empty? && @journey_log.current_journey?
+    fail "Not enough credit [#{@balance}], TOP UP!" if @balance < MIN_BALANCE
     @journey_log.start(station)
   end
 
